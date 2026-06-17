@@ -482,26 +482,62 @@ tfoot td{padding:12px 14px;font-size:12.8px;color:var(--ink);vertical-align:midd
   </div>
 </div>
 
-<!-- Security Report Modal (for town/woreda users) -->
+<!-- Security Report Modal — Add / Edit -->
 <div class="modal-bg" id="modalReport">
   <div class="modal modal-wide">
-    <h2>Submit Security Incident Report</h2>
-    <div class="sub">Report will be automatically forwarded to your Zone Administrator.</div>
+    <h2 id="modalReportTitle">Submit Security Incident Report</h2>
+    <div class="sub" id="modalReportSub">Report will be automatically forwarded to your Zone Administrator.</div>
     <form id="formReport">
-      <div class="field"><label>Incident Title / Subject</label><input id="rpt-title" required placeholder="Brief description of the incident..."></div>
-      <div class="field" style="margin-top:10px;"><label>Priority Level</label>
+      <input type="hidden" id="rpt-id">
+      <div class="form-grid">
+        <div class="field" style="grid-column:1/-1"><label>Incident Title / Subject</label><input id="rpt-title" required placeholder="e.g. Armed robbery near Masha market — 14 June 2025"></div>
+      </div>
+      <div class="form-grid" id="rptUnitFieldWrap" style="display:none;margin-top:2px;">
+        <div class="field" style="grid-column:1/-1"><label>Origin Administrative Unit</label><select id="rpt-unit"></select></div>
+      </div>
+      <div class="form-grid" style="margin-top:2px;">
+        <div class="field"><label>Incident Date &amp; Time</label><input type="datetime-local" id="rpt-incidentDate"></div>
+        <div class="field"><label>Location / Area</label><input id="rpt-location" placeholder="e.g. Masha Town, near bus station"></div>
+        <div class="field"><label>Incident Category</label>
+          <select id="rpt-category">
+            <option>Armed Robbery</option>
+            <option>Assault / Violence</option>
+            <option>Theft / Burglary</option>
+            <option>Public Disturbance</option>
+            <option>Drug-Related</option>
+            <option>Traffic Accident</option>
+            <option>Missing Person</option>
+            <option>Civil Unrest</option>
+            <option>Border / Territory Dispute</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Number of Persons Involved</label><input type="number" id="rpt-personsInvolved" min="0" placeholder="e.g. 3"></div>
+      </div>
+      <div class="field" style="margin-top:4px;"><label>Priority Level</label>
         <div class="report-priority">
-          <div class="priority-card low" data-p="Low" onclick="selectPriority(this)"><div class="pi">🟢</div><div class="pl">Low</div></div>
-          <div class="priority-card medium selected" data-p="Medium" onclick="selectPriority(this)"><div class="pi">🟡</div><div class="pl">Medium</div></div>
+          <div class="priority-card low"      data-p="Low"      onclick="selectPriority(this)"><div class="pi">🟢</div><div class="pl">Low</div></div>
+          <div class="priority-card medium selected" data-p="Medium"   onclick="selectPriority(this)"><div class="pi">🟡</div><div class="pl">Medium</div></div>
           <div class="priority-card critical" data-p="Critical" onclick="selectPriority(this)"><div class="pi">🔴</div><div class="pl">Critical</div></div>
         </div>
         <input type="hidden" id="rpt-priority" value="Medium">
       </div>
-      <div class="field" style="margin-top:10px;"><label>Incident Details</label><textarea id="rpt-details" rows="4" required placeholder="Provide full details: location, time, persons involved, actions taken..."></textarea></div>
-      <div class="field"><label>Reporting Officer / Witness Name(s)</label><input id="rpt-witness" placeholder="Names of reporting officers or witnesses"></div>
+      <div class="field" style="margin-top:10px;"><label>Full Incident Details</label>
+        <textarea id="rpt-details" rows="5" required placeholder="Describe the full incident: what happened, sequence of events, persons involved, injuries/losses, actions taken by officers..."></textarea>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>Reporting Officer(s) / Witnesses</label><input id="rpt-witness" placeholder="Names and badge IDs of attending officers"></div>
+        <div class="field"><label>Suspects / Persons of Interest</label><input id="rpt-suspects" placeholder="Names, descriptions, or unknown"></div>
+        <div class="field"><label>Arrest(s) Made?</label>
+          <select id="rpt-arrests"><option value="No">No</option><option value="Yes">Yes</option><option value="Pending">Pending Investigation</option></select>
+        </div>
+        <div class="field"><label>Follow-Up Action Required</label>
+          <select id="rpt-followup"><option value="None">None — Resolved on scene</option><option value="Investigation">Further Investigation</option><option value="Patrol">Increased Patrol</option><option value="Prosecution">Prosecution / Legal Action</option><option value="Referral">Referral to Higher Authority</option></select>
+        </div>
+      </div>
       <div class="modal-foot">
         <button type="button" class="btn btn-ghost" onclick="closeModal('modalReport')">Cancel</button>
-        <button type="submit" class="btn btn-gold">Submit Report</button>
+        <button type="submit" class="btn btn-gold" id="rpt-submitBtn">Submit Report</button>
       </div>
     </form>
   </div>
@@ -1480,57 +1516,143 @@ function renderAdmin(main) {
 }
 
 /* ====================================================================
-   VIEW: SECURITY REPORTS (zone_admin / sys_admin)
+   VIEW: SECURITY REPORTS (zone_admin / sys_admin) — Full CRUD
 ==================================================================== */
 function renderReports(main) {
-  const pending = DB.reports.filter(r=>r.status==='Pending');
-  const resolved= DB.reports.filter(r=>r.status==='Resolved');
+  const all      = DB.reports;
+  const pending  = all.filter(r => r.status === 'Pending');
+  const resolved = all.filter(r => r.status === 'Resolved');
+  const critical = all.filter(r => r.priority === 'Critical');
 
   function reportRow(r) {
-    const unit = UNITS.find(u=>u.id===r.unitId)||{name:'Unknown'};
-    const priorityColor = r.priority==='Critical'?'critical': r.priority==='Medium'?'leave':'active';
+    const unit = UNITS.find(u => u.id === r.unitId) || {name:'Unknown'};
+    const pc   = r.priority==='Critical'?'critical': r.priority==='Medium'?'leave':'active';
+    const sc   = r.status==='Pending'?'pending':'resolved';
     return `<tr>
       <td><span class="id-tag">${r.id}</span></td>
-      <td>${r.title}</td>
+      <td style="max-width:220px;white-space:normal;font-weight:500;color:var(--parchment)">${r.title}</td>
       <td>${unit.name}</td>
+      <td style="font-size:11.5px">${r.category||'—'}</td>
       <td>${r.submittedBy}</td>
-      <td><span class="badge ${priorityColor}">${r.priority}</span></td>
-      <td class="mono">${r.date}</td>
-      <td><span class="badge ${r.status==='Pending'?'pending':'resolved'}">${r.status}</span></td>
+      <td><span class="badge ${pc}">${r.priority}</span></td>
+      <td class="mono" style="font-size:11px">${r.date}</td>
+      <td><span class="badge ${sc}">${r.status}</span></td>
       <td>
         <div class="row-actions">
-          <button class="icon-btn" onclick="viewReport('${r.id}')" title="View">${svgEye}</button>
-          ${r.status==='Pending'?`<button class="icon-btn" onclick="resolveReport('${r.id}')" title="Mark Resolved" style="color:var(--green-bright)">${svgCheck}</button>`:''}
+          <button class="icon-btn" onclick="viewReport('${r.id}')" title="View Full Report">${svgEye}</button>
+          <button class="icon-btn" onclick="editReport('${r.id}')" title="Edit Report">${svgEdit}</button>
+          ${r.status==='Pending'
+            ? `<button class="icon-btn" onclick="resolveReport('${r.id}')" title="Mark Resolved" style="color:var(--green-bright)">${svgCheck}</button>`
+            : `<button class="icon-btn" onclick="reopenReport('${r.id}')" title="Reopen" style="color:var(--gold-bright)">${svgAlert}</button>`}
+          <button class="icon-btn del" onclick="deleteReport('${r.id}')" title="Delete Report">${svgTrash}</button>
         </div>
       </td>
     </tr>`;
   }
 
-  const pendingRows  = pending.map(reportRow).join('')  || `<tr><td colspan="8" style="text-align:center;color:var(--ink-dim);padding:20px;">No pending reports.</td></tr>`;
-  const resolvedRows = resolved.map(reportRow).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--ink-dim);padding:20px;">No resolved reports.</td></tr>`;
+  const buildRows = (list) => list.length
+    ? list.map(reportRow).join('')
+    : `<tr><td colspan="9" style="text-align:center;color:var(--ink-dim);padding:24px;">No reports in this category.</td></tr>`;
 
   main.innerHTML = `
     <div class="topbar">
-      <div><h1>Security Intelligence Reports</h1><div class="meta">Incoming reports from all Town and Woreda offices · ${DB.reports.length} total</div></div>
+      <div><h1>Security Intelligence Reports</h1>
+        <div class="meta">Full management · Add, edit, delete, resolve reports · ${all.length} total</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <div class="search-bar" style="min-width:210px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="rptSearch" placeholder="Search title, unit, officer…">
+        </div>
+        <button class="btn btn-gold" onclick="openNewReport()">${svgPlus} Add Report</button>
+      </div>
     </div>
-    <div class="grid stats-grid" style="grid-template-columns:repeat(4,1fr);max-width:700px;margin-bottom:18px;">
-      <div class="stat-card"><div class="label">Total Reports</div><div class="value">${DB.reports.length}</div></div>
-      <div class="stat-card"><div class="label">Pending Review</div><div class="value" style="color:#e8a89c">${pending.length}</div><div class="delta alert">Action Required</div></div>
+
+    <div class="grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:18px;">
+      <div class="stat-card"><div class="label">Total Reports</div><div class="value">${all.length}</div></div>
+      <div class="stat-card"><div class="label">Pending</div><div class="value" style="color:#e8a89c">${pending.length}</div><div class="delta alert">Need Action</div></div>
       <div class="stat-card"><div class="label">Resolved</div><div class="value" style="color:#7fcf94">${resolved.length}</div></div>
-      <div class="stat-card"><div class="label">Critical</div><div class="value" style="color:var(--danger-bright)">${DB.reports.filter(r=>r.priority==='Critical').length}</div><div class="delta alert">High Priority</div></div>
+      <div class="stat-card"><div class="label">Critical</div><div class="value" style="color:var(--danger-bright)">${critical.length}</div><div class="delta alert">High Priority</div></div>
+      <div class="stat-card"><div class="label">Resolution Rate</div><div class="value">${all.length ? Math.round(resolved.length/all.length*100) : 0}%</div><div class="delta">Closed Cases</div></div>
+    </div>
+
+    <div class="chip-toolbar" id="rptFilterBar">
+      <button class="chip active" data-f="all"      onclick="filterReports(this,'all')">All Reports</button>
+      <button class="chip"        data-f="Pending"  onclick="filterReports(this,'Pending')">Pending</button>
+      <button class="chip"        data-f="Resolved" onclick="filterReports(this,'Resolved')">Resolved</button>
+      <button class="chip"        data-f="Critical" onclick="filterReports(this,'Critical')">Critical</button>
+      ${UNITS.map(u=>`<button class="chip" data-f="unit_${u.id}" onclick="filterReports(this,'unit_${u.id}')">${u.name}</button>`).join('')}
     </div>
 
     <div class="panel">
-      <div class="panel-head"><h3>Pending Reports</h3><span class="badge pending">${pending.length}</span></div>
-      <div class="table-wrap"><table><thead><tr><th>Report ID</th><th>Title</th><th>Origin Unit</th><th>Submitted By</th><th>Priority</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody>${pendingRows}</tbody></table></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head"><h3>Resolved Reports</h3></div>
-      <div class="table-wrap"><table><thead><tr><th>Report ID</th><th>Title</th><th>Origin Unit</th><th>Submitted By</th><th>Priority</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody>${resolvedRows}</tbody></table></div>
+      <div class="panel-head">
+        <h3 id="rptTableTitle">All Reports</h3>
+        <div style="font-size:11.5px;color:var(--ink-dim)">${all.length} records</div>
+      </div>
+      <div class="table-wrap">
+        <table id="rptTable">
+          <thead><tr>
+            <th>Report ID</th><th>Title</th><th>Origin Unit</th>
+            <th>Category</th><th>Submitted By</th><th>Priority</th>
+            <th>Date</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="rptTbody">${buildRows(all)}</tbody>
+        </table>
+      </div>
     </div>
   `;
+
+  // Live search
+  document.getElementById('rptSearch').addEventListener('input', e => {
+    const term = e.target.value.toLowerCase();
+    document.querySelectorAll('#rptTbody tr').forEach(r => {
+      r.style.display = r.textContent.toLowerCase().includes(term) ? '' : 'none';
+    });
+  });
 }
+
+window.filterReports = function(btn, filter) {
+  document.querySelectorAll('#rptFilterBar .chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  const tbody = document.getElementById('rptTbody');
+  if (!tbody) return;
+  let list;
+  if (filter === 'all')       list = DB.reports;
+  else if (filter === 'Pending' || filter === 'Resolved') list = DB.reports.filter(r => r.status === filter);
+  else if (filter === 'Critical') list = DB.reports.filter(r => r.priority === 'Critical');
+  else if (filter.startsWith('unit_')) list = DB.reports.filter(r => r.unitId === filter.replace('unit_',''));
+  else list = DB.reports;
+
+  function reportRowInline(r) {
+    const unit = UNITS.find(u => u.id === r.unitId) || {name:'Unknown'};
+    const pc   = r.priority==='Critical'?'critical': r.priority==='Medium'?'leave':'active';
+    const sc   = r.status==='Pending'?'pending':'resolved';
+    return `<tr>
+      <td><span class="id-tag">${r.id}</span></td>
+      <td style="max-width:220px;white-space:normal;font-weight:500;color:var(--parchment)">${r.title}</td>
+      <td>${unit.name}</td>
+      <td style="font-size:11.5px">${r.category||'—'}</td>
+      <td>${r.submittedBy}</td>
+      <td><span class="badge ${pc}">${r.priority}</span></td>
+      <td class="mono" style="font-size:11px">${r.date}</td>
+      <td><span class="badge ${sc}">${r.status}</span></td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn" onclick="viewReport('${r.id}')" title="View">${svgEye}</button>
+          <button class="icon-btn" onclick="editReport('${r.id}')" title="Edit">${svgEdit}</button>
+          ${r.status==='Pending'
+            ? `<button class="icon-btn" onclick="resolveReport('${r.id}')" title="Resolve" style="color:var(--green-bright)">${svgCheck}</button>`
+            : `<button class="icon-btn" onclick="reopenReport('${r.id}')" title="Reopen" style="color:var(--gold-bright)">${svgAlert}</button>`}
+          <button class="icon-btn del" onclick="deleteReport('${r.id}')" title="Delete">${svgTrash}</button>
+        </div>
+      </td>
+    </tr>`;
+  }
+  tbody.innerHTML = list.length
+    ? list.map(reportRowInline).join('')
+    : `<tr><td colspan="9" style="text-align:center;color:var(--ink-dim);padding:24px;">No reports match this filter.</td></tr>`;
+  document.getElementById('rptTableTitle').textContent = btn.textContent.trim() + ' (' + list.length + ')';
+};
 
 /* ====================================================================
    VIEW: MY REPORTS (town/woreda users)
@@ -1868,13 +1990,69 @@ document.getElementById('formUser').addEventListener('submit', e => {
 
 // ── SECURITY REPORTS ──────────────────────────────────────────────
 
-function openReportModal() {
+function resetReportForm() {
   document.getElementById('formReport').reset();
+  document.getElementById('rpt-id').value = '';
   document.getElementById('rpt-priority').value = 'Medium';
   document.querySelectorAll('.priority-card').forEach(c => c.classList.remove('selected'));
   document.querySelector('.priority-card.medium').classList.add('selected');
+  document.getElementById('rpt-arrests').value = 'No';
+  document.getElementById('rpt-followup').value = 'None';
+}
+
+function populateReportUnitSelector(selectedId) {
+  const sel = document.getElementById('rpt-unit');
+  if (!sel) return;
+  sel.innerHTML = UNITS.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+  if (selectedId) sel.value = selectedId;
+}
+
+// Town/Woreda users: submit a report tied to their own unit
+function openReportModal() {
+  resetReportForm();
+  document.getElementById('modalReportTitle').textContent = 'Submit Security Incident Report';
+  document.getElementById('modalReportSub').textContent   = 'Report will be automatically forwarded to your Zone Administrator.';
+  document.getElementById('rpt-submitBtn').textContent     = 'Submit Report';
+  document.getElementById('rptUnitFieldWrap').style.display = 'none';
   openModal('modalReport');
 }
+
+// Zone/System Admin: log a new report on behalf of any unit
+window.openNewReport = function() {
+  resetReportForm();
+  populateReportUnitSelector();
+  document.getElementById('modalReportTitle').textContent = 'Add Security Incident Report';
+  document.getElementById('modalReportSub').textContent   = 'Manually log an incident report into the central system.';
+  document.getElementById('rpt-submitBtn').textContent     = 'Save Report';
+  document.getElementById('rptUnitFieldWrap').style.display = '';
+  openModal('modalReport');
+};
+
+// Zone/System Admin: edit an existing report (any unit)
+window.editReport = function(id) {
+  const r = DB.reports.find(x=>x.id===id);
+  if (!r) return;
+  resetReportForm();
+  populateReportUnitSelector(r.unitId);
+  document.getElementById('rpt-id').value               = r.id;
+  document.getElementById('rpt-title').value             = r.title || '';
+  document.getElementById('rpt-incidentDate').value      = r.incidentDate || '';
+  document.getElementById('rpt-location').value          = r.location || '';
+  document.getElementById('rpt-category').value          = r.category || 'Other';
+  document.getElementById('rpt-personsInvolved').value   = r.personsInvolved != null ? r.personsInvolved : '';
+  document.getElementById('rpt-details').value           = r.details || '';
+  document.getElementById('rpt-witness').value           = r.witness || '';
+  document.getElementById('rpt-suspects').value          = r.suspects || '';
+  document.getElementById('rpt-arrests').value           = r.arrests || 'No';
+  document.getElementById('rpt-followup').value          = r.followup || 'None';
+  document.getElementById('rpt-priority').value          = r.priority || 'Medium';
+  document.querySelectorAll('.priority-card').forEach(c => c.classList.toggle('selected', c.dataset.p === r.priority));
+  document.getElementById('modalReportTitle').textContent = `Edit Report — ${r.id}`;
+  document.getElementById('modalReportSub').textContent   = 'Update incident report details.';
+  document.getElementById('rpt-submitBtn').textContent     = 'Save Changes';
+  document.getElementById('rptUnitFieldWrap').style.display = '';
+  openModal('modalReport');
+};
 
 window.selectPriority = function(el) {
   document.querySelectorAll('.priority-card').forEach(c=>c.classList.remove('selected'));
@@ -1882,25 +2060,59 @@ window.selectPriority = function(el) {
   document.getElementById('rpt-priority').value = el.dataset.p;
 };
 
+function nextReportId() {
+  let maxNum = 0;
+  DB.reports.forEach(r => {
+    const m = r.id && r.id.match(/RPT-(\d+)/);
+    if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
+  });
+  return 'RPT-' + String(maxNum + 1).padStart(4,'0');
+}
+
 document.getElementById('formReport').addEventListener('submit', e => {
   e.preventDefault();
-  const report = {
-    id:          'RPT-' + String(DB.reports.length + 1).padStart(4,'0'),
-    title:       document.getElementById('rpt-title').value.trim(),
-    priority:    document.getElementById('rpt-priority').value,
-    details:     document.getElementById('rpt-details').value.trim(),
-    witness:     document.getElementById('rpt-witness').value.trim(),
-    unitId:      currentUser.unitId,
-    submittedBy: currentUser.name,
-    submittedByUsername: currentUser.username,
-    date:        today(),
-    status:      'Pending',
+  const id        = document.getElementById('rpt-id').value;
+  const adminFlow = can('view_reports'); // zone_admin / sys_admin can log/edit on behalf of any unit
+  const unitId    = adminFlow ? document.getElementById('rpt-unit').value : currentUser.unitId;
+
+  const fields = {
+    title:           document.getElementById('rpt-title').value.trim(),
+    incidentDate:    document.getElementById('rpt-incidentDate').value,
+    location:        document.getElementById('rpt-location').value.trim(),
+    category:        document.getElementById('rpt-category').value,
+    personsInvolved: document.getElementById('rpt-personsInvolved').value,
+    priority:        document.getElementById('rpt-priority').value,
+    details:         document.getElementById('rpt-details').value.trim(),
+    witness:         document.getElementById('rpt-witness').value.trim(),
+    suspects:        document.getElementById('rpt-suspects').value.trim(),
+    arrests:         document.getElementById('rpt-arrests').value,
+    followup:        document.getElementById('rpt-followup').value,
+    unitId:          unitId,
   };
-  DB.reports.unshift(report);
-  saveState(DB);
-  showToast('Security report submitted. Zone Administrator notified.');
-  closeModal('modalReport');
-  switchNav('my_reports');
+
+  if (id) {
+    // Edit existing report
+    const idx = DB.reports.findIndex(r => r.id === id);
+    if (idx > -1) DB.reports[idx] = Object.assign({}, DB.reports[idx], fields);
+    saveState(DB);
+    showToast('Report updated.');
+    closeModal('modalReport');
+    switchNav(adminFlow ? 'reports' : 'my_reports');
+  } else {
+    // New report
+    const report = Object.assign({
+      id:                  nextReportId(),
+      submittedBy:         currentUser.name,
+      submittedByUsername: currentUser.username,
+      date:                today(),
+      status:              'Pending',
+    }, fields);
+    DB.reports.unshift(report);
+    saveState(DB);
+    showToast(adminFlow ? `Report logged: ${report.id}` : 'Security report submitted. Zone Administrator notified.');
+    closeModal('modalReport');
+    switchNav(adminFlow ? 'reports' : 'my_reports');
+  }
 });
 
 window.viewReport = function(id) {
@@ -1914,8 +2126,14 @@ window.viewReport = function(id) {
       <div><div class="detail-label">Status</div><div class="detail-val"><span class="badge ${r.status==='Pending'?'pending':'resolved'}">${r.status}</span></div></div>
       <div><div class="detail-label">Origin Unit</div><div class="detail-val">${unit.name}</div></div>
       <div><div class="detail-label">Priority</div><div class="detail-val"><span class="badge ${pc}">${r.priority}</span></div></div>
+      <div><div class="detail-label">Category</div><div class="detail-val">${r.category||'—'}</div></div>
+      <div><div class="detail-label">Location</div><div class="detail-val">${r.location||'—'}</div></div>
+      <div><div class="detail-label">Incident Date &amp; Time</div><div class="detail-val mono">${r.incidentDate ? new Date(r.incidentDate).toLocaleString() : '—'}</div></div>
+      <div><div class="detail-label">Persons Involved</div><div class="detail-val">${r.personsInvolved != null && r.personsInvolved !== '' ? r.personsInvolved : '—'}</div></div>
+      <div><div class="detail-label">Arrest(s) Made</div><div class="detail-val">${r.arrests || '—'}</div></div>
+      <div><div class="detail-label">Follow-Up Required</div><div class="detail-val">${r.followup || '—'}</div></div>
       <div><div class="detail-label">Submitted By</div><div class="detail-val">${r.submittedBy} (@${r.submittedByUsername||'—'})</div></div>
-      <div><div class="detail-label">Date</div><div class="detail-val mono">${r.date}</div></div>
+      <div><div class="detail-label">Date Logged</div><div class="detail-val mono">${r.date}</div></div>
     </div>
     <div class="field" style="margin-bottom:12px;"><label style="display:block;font-size:11.5px;color:var(--ink-dim);margin-bottom:6px;">INCIDENT TITLE</label>
       <div style="font-size:15px;font-weight:700;color:var(--parchment)">${r.title}</div>
@@ -1923,14 +2141,20 @@ window.viewReport = function(id) {
     <div class="field" style="margin-bottom:12px;"><label style="display:block;font-size:11.5px;color:var(--ink-dim);margin-bottom:6px;">INCIDENT DETAILS</label>
       <div style="font-size:13px;color:var(--ink);line-height:1.6;background:rgba(7,22,35,.3);border:1px solid var(--line);border-radius:7px;padding:12px;">${r.details||'—'}</div>
     </div>
-    ${r.witness ? `<div class="field"><label style="display:block;font-size:11.5px;color:var(--ink-dim);margin-bottom:6px;">REPORTING OFFICERS / WITNESSES</label><div style="font-size:13px;color:var(--ink)">${r.witness}</div></div>` : ''}
-    ${r.resolution ? `<div class="field" style="margin-top:12px;"><label style="display:block;font-size:11.5px;color:#7fcf94;margin-bottom:6px;">RESOLUTION NOTES</label><div style="font-size:13px;color:var(--ink)">${r.resolution}</div></div>` : ''}
+    ${r.witness ? `<div class="field" style="margin-bottom:12px;"><label style="display:block;font-size:11.5px;color:var(--ink-dim);margin-bottom:6px;">REPORTING OFFICERS / WITNESSES</label><div style="font-size:13px;color:var(--ink)">${r.witness}</div></div>` : ''}
+    ${r.suspects ? `<div class="field"><label style="display:block;font-size:11.5px;color:var(--ink-dim);margin-bottom:6px;">SUSPECTS / PERSONS OF INTEREST</label><div style="font-size:13px;color:var(--ink)">${r.suspects}</div></div>` : ''}
+    ${r.resolution ? `<div class="field" style="margin-top:12px;"><label style="display:block;font-size:11.5px;color:#7fcf94;margin-bottom:6px;">RESOLUTION NOTES</label><div style="font-size:13px;color:var(--ink)">${r.resolution}</div><div style="font-size:11px;color:var(--ink-dim);margin-top:4px;">Resolved by ${r.resolvedBy||'—'} on ${r.resolvedDate||'—'}</div></div>` : ''}
   `;
 
   const foot = document.getElementById('reportDetailFoot');
   foot.innerHTML = `<button class="btn btn-ghost" onclick="closeModal('modalReportDetail')">Close</button>`;
-  if (can('view_reports') && r.status === 'Pending') {
-    foot.innerHTML += `<button class="btn btn-gold" onclick="resolveReport('${r.id}')">Mark as Resolved</button>`;
+  if (can('view_reports')) {
+    foot.innerHTML += `<button class="btn btn-ghost" onclick="closeModal('modalReportDetail');editReport('${r.id}')">Edit Report</button>`;
+    if (r.status === 'Pending') {
+      foot.innerHTML += `<button class="btn btn-gold" onclick="resolveReport('${r.id}')">Mark as Resolved</button>`;
+    } else {
+      foot.innerHTML += `<button class="btn btn-blue" onclick="reopenReport('${r.id}')">Reopen Report</button>`;
+    }
   }
   openModal('modalReportDetail');
 };
@@ -1946,6 +2170,28 @@ window.resolveReport = function(id) {
   saveState(DB);
   showToast('Report marked as resolved.');
   closeModal('modalReportDetail');
+  switchNav('reports');
+};
+
+window.reopenReport = function(id) {
+  const r = DB.reports.find(x=>x.id===id);
+  if (!r) return;
+  if (!confirm(`Reopen report ${id} for further review?`)) return;
+  r.status = 'Pending';
+  delete r.resolution;
+  delete r.resolvedBy;
+  delete r.resolvedDate;
+  saveState(DB);
+  showToast('Report reopened for review.');
+  closeModal('modalReportDetail');
+  switchNav('reports');
+};
+
+window.deleteReport = function(id) {
+  if (!confirm(`Delete report ${id}? This action cannot be undone.`)) return;
+  DB.reports = DB.reports.filter(r => r.id !== id);
+  saveState(DB);
+  showToast('Report deleted.');
   switchNav('reports');
 };
 
