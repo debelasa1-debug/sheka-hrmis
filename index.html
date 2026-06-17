@@ -165,6 +165,8 @@ tbody tr:hover{background:rgba(255,255,255,.025);}
 .badge.payroll{background:rgba(160,100,180,.15);color:#d0a8e8;}
 .badge.town{background:rgba(90,170,90,.15);color:#a0e0a0;}
 .badge.woreda{background:rgba(180,120,60,.15);color:#e0c080;}
+.badge.retired{background:rgba(255,255,255,.06);color:var(--ink-dim);}
+.badge.suspended{background:rgba(181,72,58,.18);color:#e8a89c;}
 .row-actions{display:flex;gap:6px;}
 .icon-btn{background:none;border:1px solid var(--line);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-dim);transition:all .15s;}
 .icon-btn:hover{color:var(--gold-bright);border-color:var(--gold);background:rgba(201,162,75,.08);}
@@ -373,6 +375,16 @@ tfoot td{padding:12px 14px;font-size:12.8px;color:var(--ink);vertical-align:midd
         <div class="field"><label>Enlistment Date</label><input type="date" id="in-hireDate" required></div>
         <div class="field"><label>Date of Birth</label><input type="date" id="in-dob" required></div>
         <div class="field"><label>Mobile Contact</label><input id="in-phone" required placeholder="09xxxxxxxx"></div>
+        <div class="field"><label>Status</label><select id="in-status"><option value="Active">Active</option><option value="On Leave">On Leave</option><option value="Suspended">Suspended</option><option value="Retired">Retired</option></select></div>
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--gold-bright);margin-bottom:10px;font-weight:600;">⚙ Payroll Overrides <span style="font-weight:400;color:var(--ink-dim);text-transform:none;letter-spacing:0;">(optional — leave blank to use rank-based defaults)</span></div>
+        <div class="form-grid">
+          <div class="field"><label>Custom Base Salary Override (ETB)</label><input type="number" id="in-baseSalary" min="0" placeholder="Leave blank for rank default"></div>
+          <div class="field"><label>Extra Allowance (ETB)</label><input type="number" id="in-extraAllowance" min="0" placeholder="e.g. 500 for special duty"></div>
+          <div class="field"><label>Deduction (ETB)</label><input type="number" id="in-deduction" min="0" placeholder="e.g. 200 for loan repayment"></div>
+          <div class="field"><label>Bank Account Number</label><input id="in-bankAccount" placeholder="e.g. 1000123456789"></div>
+        </div>
       </div>
       <div class="modal-foot">
         <button type="button" class="btn btn-ghost" onclick="closeModal('modalEmp')">Cancel</button>
@@ -613,36 +625,8 @@ function seedSystem() {
     });
   }
 
-  // Seed real employee records if none exist
-  if (DB.employees.length === 0) {
-    const seedEmployees = [
-      {id:'SPB-1001',fullName:'Abebe Tesema',      gender:'Male',  rank:'Commissioner',         unitId:'masha_w',     department:'Human Capital Management',     hireDate:'2015-03-12',dob:'1972-06-15',phone:'0911223344',status:'Active'},
-      {id:'SPB-1002',fullName:'Hirut Alemu',        gender:'Female',rank:'Chief Inspector',      unitId:'tepi_t',      department:'Criminal Investigation Division',hireDate:'2016-08-22',dob:'1980-11-02',phone:'0912334455',status:'Active'},
-      {id:'SPB-1003',fullName:'Getachew Mekonnen',  gender:'Male',  rank:'Assistant Commissioner',unitId:'anderacha_w', department:'Crime Prevention',             hireDate:'2014-01-05',dob:'1975-04-20',phone:'0913445566',status:'Active'},
-      {id:'SPB-1004',fullName:'Selamawit Bekele',   gender:'Female',rank:'Inspector',            unitId:'masha_t',     department:'Community Engagement',         hireDate:'2018-06-10',dob:'1985-09-30',phone:'0914556677',status:'Active'},
-      {id:'SPB-1005',fullName:'Yonas Haile',        gender:'Male',  rank:'Staff Sergeant',       unitId:'yeki_w',      department:'Traffic Control Operations',   hireDate:'2019-03-25',dob:'1990-01-14',phone:'0915667788',status:'Active'},
-      {id:'SPB-1006',fullName:'Tigist Wolde',       gender:'Female',rank:'Sergeant',             unitId:'gecha_t',     department:'Tactical Intelligence',        hireDate:'2020-07-18',dob:'1992-05-08',phone:'0916778899',status:'Active'},
-      {id:'SPB-1007',fullName:'Mulugeta Girma',     gender:'Male',  rank:'Corporal',             unitId:'masha_w',     department:'Logistics Command',            hireDate:'2021-02-14',dob:'1995-12-22',phone:'0917889900',status:'Active'},
-      {id:'SPB-1008',fullName:'Genet Tsegaye',      gender:'Female',rank:'Senior Constable',     unitId:'tepi_t',      department:'Crime Prevention',             hireDate:'2022-05-30',dob:'1997-03-11',phone:'0918990011',status:'On Leave'},
-      {id:'SPB-1009',fullName:'Solomon Worku',      gender:'Male',  rank:'Constable',            unitId:'anderacha_w', department:'Traffic Control Operations',   hireDate:'2023-01-09',dob:'1999-07-05',phone:'0919001122',status:'Active'},
-      {id:'SPB-1010',fullName:'Almaz Dalito',       gender:'Female',rank:'Inspector',            unitId:'masha_t',     department:'Criminal Investigation Division',hireDate:'2017-11-20',dob:'1983-02-27',phone:'0920112233',status:'Active'},
-      {id:'SPB-1011',fullName:'Kebede Tesfaye',     gender:'Male',  rank:'Staff Sergeant',       unitId:'yeki_w',      department:'Community Engagement',         hireDate:'2019-08-15',dob:'1988-10-03',phone:'0921223344',status:'Active'},
-      {id:'SPB-1012',fullName:'Meron Haile',        gender:'Female',rank:'Sergeant',             unitId:'gecha_t',     department:'Human Capital Management',     hireDate:'2020-12-01',dob:'1993-08-19',phone:'0922334455',status:'Active'},
-      {id:'SPB-1013',fullName:'Daniel Worku',       gender:'Male',  rank:'Corporal',             unitId:'masha_w',     department:'Tactical Intelligence',        hireDate:'2021-09-07',dob:'1996-04-30',phone:'0923445566',status:'Active'},
-      {id:'SPB-1014',fullName:'Bethlehem Tsegaye',  gender:'Female',rank:'Constable',            unitId:'tepi_t',      department:'Logistics Command',            hireDate:'2023-06-21',dob:'2000-01-15',phone:'0924556677',status:'Active'},
-      {id:'SPB-1015',fullName:'Henok Mekonnen',     gender:'Male',  rank:'Chief Inspector',      unitId:'anderacha_w', department:'Crime Prevention',             hireDate:'2016-04-03',dob:'1978-09-25',phone:'0925667788',status:'Active'},
-      {id:'SPB-1016',fullName:'Rahel Alemu',        gender:'Female',rank:'Assistant Commissioner',unitId:'masha_t',     department:'Criminal Investigation Division',hireDate:'2013-07-14',dob:'1973-12-08',phone:'0926778899',status:'Active'},
-      {id:'SPB-1017',fullName:'Girma Bekele',       gender:'Male',  rank:'Inspector',            unitId:'yeki_w',      department:'Traffic Control Operations',   hireDate:'2018-10-28',dob:'1986-06-17',phone:'0927889900',status:'Active'},
-      {id:'SPB-1018',fullName:'Hanna Wolde',        gender:'Female',rank:'Staff Sergeant',       unitId:'gecha_t',     department:'Tactical Intelligence',        hireDate:'2019-05-13',dob:'1991-11-29',phone:'0928990011',status:'On Leave'},
-      {id:'SPB-1019',fullName:'Tesfaye Girma',      gender:'Male',  rank:'Sergeant',             unitId:'masha_w',     department:'Community Engagement',         hireDate:'2020-03-06',dob:'1993-07-04',phone:'0929001122',status:'Active'},
-      {id:'SPB-1020',fullName:'Aster Bekele',       gender:'Female',rank:'Senior Constable',     unitId:'tepi_t',      department:'Human Capital Management',     hireDate:'2022-09-17',dob:'1998-02-23',phone:'0930112233',status:'Active'},
-      {id:'SPB-1021',fullName:'Dawit Haile',        gender:'Male',  rank:'Constable',            unitId:'anderacha_w', department:'Logistics Command',            hireDate:'2023-11-03',dob:'2001-05-12',phone:'0931223344',status:'Active'},
-      {id:'SPB-1022',fullName:'Selam Mekonnen',     gender:'Female',rank:'Corporal',             unitId:'masha_t',     department:'Crime Prevention',             hireDate:'2021-07-25',dob:'1995-10-06',phone:'0932334455',status:'Active'},
-      {id:'SPB-1023',fullName:'Belay Tsegaye',      gender:'Male',  rank:'Commissioner',         unitId:'yeki_w',      department:'Human Capital Management',     hireDate:'2012-01-18',dob:'1968-03-31',phone:'0933445566',status:'Active'},
-      {id:'SPB-1024',fullName:'Fikirte Worku',      gender:'Female',rank:'Inspector',            unitId:'gecha_t',     department:'Criminal Investigation Division',hireDate:'2017-04-09',dob:'1982-08-14',phone:'0934556677',status:'Active'},
-    ];
-    DB.employees = seedEmployees;
-  }
+  // No auto-seed of employee records — admin enters real data manually
+  // Existing data in localStorage is preserved across deployments
 
   saveState(DB);
 }
@@ -650,11 +634,15 @@ function seedSystem() {
 // ── PAYROLL CALC ───────────────────────────────────────────────────
 
 function calcPayroll(emp) {
-  const base     = RANK_FINANCIAL_MATRIX[emp.rank] || 7000;
+  // Use custom base override if set, otherwise use rank matrix
+  const base     = (emp.baseSalary && emp.baseSalary > 0) ? Number(emp.baseSalary) : (RANK_FINANCIAL_MATRIX[emp.rank] || 7000);
   const unit     = UNITS.find(u => u.id === emp.unitId) || {allowance:1000};
   const regional = unit.allowance;
   const hazard   = emp.status === 'Active' ? Math.round(base * 0.25) : 0;
-  return {base, hazard, regional, gross: base + hazard + regional};
+  const extra    = Number(emp.extraAllowance) || 0;
+  const deduct   = Number(emp.deduction) || 0;
+  const gross    = base + hazard + regional + extra - deduct;
+  return {base, hazard, regional, extra, deduct, gross};
 }
 
 /* ====================================================================
@@ -1029,6 +1017,7 @@ function renderEmployees(main) {
   let rows = '';
   filtered.forEach(e => {
     const unit = UNITS.find(u=>u.id===e.unitId)||{name:'—'};
+    const statusClass = e.status==='Active'?'active':e.status==='Retired'?'retired':e.status==='Suspended'?'pending':'leave';
     rows += `<tr>
       <td><span class="id-tag">${e.id}</span></td>
       <td style="font-weight:600;color:var(--parchment)">${e.fullName}</td>
@@ -1036,16 +1025,26 @@ function renderEmployees(main) {
       <td><b style="color:var(--gold-bright)">${e.rank}</b></td>
       <td>${unit.name}</td>
       <td>${e.department}</td>
-      <td><span class="badge ${e.status==='Active'?'active':'leave'}">${e.status}</span></td>
+      <td><span class="badge ${statusClass}">${e.status}</span></td>
       <td>
         <div class="row-actions">
-          <button class="icon-btn" onclick="viewEmployee('${e.id}')" title="View">${svgEye}</button>
-          ${!readOnly ? `<button class="icon-btn" onclick="editEmployee('${e.id}')" title="Edit">${svgEdit}</button>
-          <button class="icon-btn del" onclick="deleteEmployee('${e.id}')" title="Delete">${svgTrash}</button>` : ''}
+          <button class="icon-btn" onclick="viewEmployee('${e.id}')" title="View Profile">${svgEye}</button>
+          ${!readOnly ? `<button class="icon-btn" onclick="editEmployee('${e.id}')" title="Edit Record">${svgEdit}</button>
+          <button class="icon-btn del" onclick="deleteEmployee('${e.id}')" title="Delete Record">${svgTrash}</button>` : ''}
         </div>
       </td>
     </tr>`;
   });
+  if (filtered.length === 0) {
+    rows = `<tr><td colspan="8">
+      <div style="text-align:center;padding:40px 20px;">
+        <div style="font-size:32px;margin-bottom:12px;">👮</div>
+        <div style="font-family:'Bitter',serif;font-size:16px;font-weight:700;color:var(--parchment);margin-bottom:6px;">No Personnel Records Yet</div>
+        <div style="font-size:13px;color:var(--ink-dim);margin-bottom:16px;">This system contains no employee data. Start adding real personnel records using the button above.</div>
+        ${!readOnly ? `<button class="btn btn-gold" onclick="openNewEmployee()">${svgPlus} Add First Employee</button>` : ''}
+      </div>
+    </td></tr>`;
+  }
 
   main.innerHTML = `
     <div class="topbar">
@@ -1100,31 +1099,40 @@ function renderPayroll(main) {
   filtered.forEach((e, idx) => {
     const p    = calcPayroll(e);
     const unit = UNITS.find(u => u.id === e.unitId) || {name:'—'};
+    const hasOverride = e.baseSalary != null && e.baseSalary > 0;
+    const statusClass = e.status==='Active'?'active':e.status==='Retired'?'retired':e.status==='Suspended'?'pending':'leave';
     rows += `<tr>
       <td class="mono" style="color:var(--ink-dim);font-size:11px;">${String(idx+1).padStart(2,'0')}</td>
       <td><span class="id-tag">${e.id}</span></td>
       <td style="font-weight:600;color:var(--parchment);">${e.fullName}</td>
       <td><b style="color:var(--gold-bright);font-size:12px;">${e.rank}</b></td>
-      <td class="mono">${p.base.toLocaleString()} ETB</td>
+      <td class="mono">${p.base.toLocaleString()} ETB${hasOverride ? ' <span style="font-size:9px;color:var(--gold);background:rgba(201,162,75,.12);padding:1px 5px;border-radius:3px;letter-spacing:.04em;">CUSTOM</span>' : ''}</td>
       <td class="mono" style="color:var(--green-bright);">+${p.hazard.toLocaleString()} ETB</td>
       <td class="mono">+${p.regional.toLocaleString()} ETB</td>
+      <td class="mono" style="color:${p.extra>0?'var(--gold-bright)':'var(--ink-dim)'};">${p.extra>0?'+'+p.extra.toLocaleString()+' ETB':'—'}</td>
+      <td class="mono" style="color:${p.deduct>0?'#e8a89c':'var(--ink-dim)'};">${p.deduct>0?'−'+p.deduct.toLocaleString()+' ETB':'—'}</td>
       <td class="mono" style="font-weight:700;color:var(--gold-bright);font-size:13px;">${p.gross.toLocaleString()} ETB</td>
-      <td><span class="badge ${e.status==='Active'?'active':'leave'}">${e.status}</span></td>
+      <td><span class="badge ${statusClass}">${e.status}</span></td>
       <td>
         <div class="row-actions">
           <button class="icon-btn" onclick="viewPayrollDetail('${e.id}')" title="View Payslip">${svgEye}</button>
-          ${!readOnly ? `<button class="icon-btn" onclick="editEmployee('${e.id}')" title="Edit">${svgEdit}</button>` : ''}
+          ${!readOnly ? `<button class="icon-btn" onclick="editEmployee('${e.id}')" title="Edit Payroll & Record">${svgEdit}</button>
+          <button class="icon-btn del" onclick="deleteEmployee('${e.id}')" title="Delete Record">${svgTrash}</button>` : ''}
         </div>
       </td>
     </tr>`;
   });
 
   // Totals footer row
+  let totalExtra = 0, totalDeduct = 0;
+  filtered.forEach(e => { const p = calcPayroll(e); totalExtra += p.extra; totalDeduct += p.deduct; });
   const footerRow = `<tr style="background:rgba(201,162,75,0.07);border-top:2px solid var(--line);">
     <td colspan="4" style="font-weight:700;color:var(--gold-bright);font-size:12px;letter-spacing:.04em;text-transform:uppercase;">TOTALS (${filtered.length} Officers)</td>
     <td class="mono" style="font-weight:700;color:var(--parchment);">${totalBase.toLocaleString()} ETB</td>
     <td class="mono" style="font-weight:700;color:var(--green-bright);">+${totalHazard.toLocaleString()} ETB</td>
     <td class="mono" style="font-weight:700;color:var(--parchment);">+${totalRegional.toLocaleString()} ETB</td>
+    <td class="mono" style="font-weight:700;color:var(--gold-bright);">${totalExtra>0?'+'+totalExtra.toLocaleString()+' ETB':'—'}</td>
+    <td class="mono" style="font-weight:700;color:#e8a89c;">${totalDeduct>0?'−'+totalDeduct.toLocaleString()+' ETB':'—'}</td>
     <td class="mono" style="font-weight:800;color:var(--gold-bright);font-size:13.5px;">${totalGross.toLocaleString()} ETB</td>
     <td colspan="2"></td>
   </tr>`;
@@ -1132,13 +1140,14 @@ function renderPayroll(main) {
   main.innerHTML = `
     <div class="topbar">
       <div><h1>Payroll Management Register</h1>
-        <div class="meta">Automated compensation · Base + 25% Hazard (Active officers) + Regional Allowance</div>
+        <div class="meta">Full CRUD · Base + 25% Hazard (Active) + Regional + Custom Overrides</div>
       </div>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <div class="search-bar" style="min-width:200px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input id="payrollSearch" placeholder="Search name, rank…">
+          <input id="payrollSearch" placeholder="Search name, rank, badge…">
         </div>
+        ${!readOnly ? `<button class="btn btn-gold" onclick="openNewEmployee()">${svgPlus} Add Employee</button>` : ''}
       </div>
     </div>
     ${readOnly ? `<div class="read-only-banner">${svgAlert} <span>Read-only view. Payroll editing requires Payroll Officer or System Admin role.</span></div>` : ''}
@@ -1187,6 +1196,8 @@ function renderPayroll(main) {
               <th>Base Salary</th>
               <th>Hazard Allow.</th>
               <th>Regional Allow.</th>
+              <th>Extra Allow.</th>
+              <th>Deduction</th>
               <th>Gross Monthly</th>
               <th>Status</th>
               <th>Actions</th>
@@ -1214,35 +1225,48 @@ window.viewPayrollDetail = function(id) {
   if (!emp) return;
   const p    = calcPayroll(emp);
   const unit = UNITS.find(u => u.id === emp.unitId) || {name:'—'};
-  const hireDate = new Date(emp.hireDate);
-  const serviceYears = ((new Date() - hireDate) / (1000*60*60*24*365.25)).toFixed(1);
+  const svc  = ((new Date() - new Date(emp.hireDate)) / (1000*60*60*24*365.25)).toFixed(1);
+  const hasOverride = emp.baseSalary != null && emp.baseSalary > 0;
+  const statusClass = emp.status==='Active'?'active':emp.status==='Retired'?'retired':emp.status==='Suspended'?'pending':'leave';
 
   document.getElementById('detailViewContent').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line);">
       <div>
-        <div style="font-family:'Bitter',serif;font-size:18px;font-weight:700;color:var(--parchment);">${emp.fullName}</div>
-        <div style="font-family:'JetBrains Mono',monospace;color:var(--gold-bright);font-size:12px;margin-top:2px;">${emp.id}</div>
+        <div style="font-family:'Bitter',serif;font-size:20px;font-weight:800;color:var(--parchment);">${emp.fullName}</div>
+        <div style="font-family:'JetBrains Mono',monospace;color:var(--gold-bright);font-size:12px;margin-top:3px;">${emp.id} &nbsp;·&nbsp; ${emp.rank}</div>
       </div>
-      <span class="badge ${emp.status==='Active'?'active':'leave'}" style="font-size:12px;padding:5px 12px;">${emp.status}</span>
+      <span class="badge ${statusClass}" style="font-size:12px;padding:5px 12px;">${emp.status}</span>
     </div>
     <div class="detail-grid">
-      <div><div class="detail-label">Rank</div><div class="detail-val">${emp.rank}</div></div>
       <div><div class="detail-label">Administrative Unit</div><div class="detail-val">${unit.name}</div></div>
       <div><div class="detail-label">Department</div><div class="detail-val">${emp.department}</div></div>
-      <div><div class="detail-label">Service Duration</div><div class="detail-val">${serviceYears} years (since ${emp.hireDate})</div></div>
-      <div><div class="detail-label">Gender</div><div class="detail-val">${emp.gender}</div></div>
+      <div><div class="detail-label">Service Duration</div><div class="detail-val">${svc} years (since ${emp.hireDate})</div></div>
       <div><div class="detail-label">Contact</div><div class="detail-val">${emp.phone}</div></div>
+      <div><div class="detail-label">Bank Account</div><div class="detail-val mono">${emp.bankAccount || '— not provided —'}</div></div>
+      <div><div class="detail-label">Gender</div><div class="detail-val">${emp.gender}</div></div>
     </div>
     <div class="financial-breakdown">
       <h4>Monthly Payroll Breakdown</h4>
-      <div class="fin-row"><span>Base Salary (${emp.rank}):</span><span>${p.base.toLocaleString()} ETB</span></div>
-      <div class="fin-row" style="color:var(--green-bright)"><span>Hazard Allowance (25% of base${emp.status!=='Active'?' — not applicable: On Leave':''}):</span><span>+${p.hazard.toLocaleString()} ETB</span></div>
-      <div class="fin-row"><span>Regional Allowance (${unit.name}):</span><span>+${p.regional.toLocaleString()} ETB</span></div>
+      <div class="fin-row">
+        <span>Base Salary ${hasOverride ? '<span style="background:rgba(201,162,75,.15);color:var(--gold-bright);font-size:10px;padding:1px 5px;border-radius:3px;">[CUSTOM OVERRIDE]</span>' : '('+emp.rank+' rate)'}:</span>
+        <span>${p.base.toLocaleString()} ETB</span>
+      </div>
+      <div class="fin-row" style="color:var(--green-bright)">
+        <span>Hazard Allow. (25%${emp.status!=='Active'?' — waived: not Active':''}):</span>
+        <span>+${p.hazard.toLocaleString()} ETB</span>
+      </div>
+      <div class="fin-row"><span>Regional Allow. (${unit.name}):</span><span>+${p.regional.toLocaleString()} ETB</span></div>
+      ${p.extra ? `<div class="fin-row" style="color:var(--gold-bright)"><span>Extra Allowance:</span><span>+${p.extra.toLocaleString()} ETB</span></div>` : ''}
+      ${p.deduct ? `<div class="fin-row" style="color:#e8a89c"><span>Deduction:</span><span>−${p.deduct.toLocaleString()} ETB</span></div>` : ''}
       <div class="fin-row total"><span>GROSS MONTHLY TOTAL:</span><span>${p.gross.toLocaleString()} ETB</span></div>
       <div class="fin-row" style="margin-top:8px;font-size:11.5px;color:var(--ink-dim);">
         <span>Annual projection (×12):</span><span>${(p.gross*12).toLocaleString()} ETB</span>
       </div>
     </div>
+  `;
+  document.querySelector('#modalDetail .modal-foot').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal('modalDetail')">Close</button>
+    ${can('edit_employees') ? `<button class="btn btn-gold" onclick="closeModal('modalDetail');editEmployee('${emp.id}')">Edit Payroll / Record</button>` : ''}
   `;
   openModal('modalDetail');
 };
@@ -1431,6 +1455,27 @@ function renderAdmin(main) {
       <div class="panel-head"><h3>All User Accounts</h3><div class="sub">${users.length} accounts in system</div></div>
       <div id="userCardList">${userCards}</div>
     </div>
+
+    <div class="panel" style="border-color:rgba(181,72,58,0.3);">
+      <div class="panel-head">
+        <div>
+          <h3 style="color:#e8a89c;">⚠ Data Management</h3>
+          <div class="sub">Danger zone — irreversible actions</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:260px;background:rgba(181,72,58,0.06);border:1px solid rgba(181,72,58,0.2);border-radius:8px;padding:14px;">
+          <div style="font-size:13px;font-weight:600;color:#e8a89c;margin-bottom:4px;">Clear All Employee Records</div>
+          <div style="font-size:12px;color:var(--ink-dim);margin-bottom:10px;">Permanently deletes all employee data. Use this to replace sample data with real personnel records. Payroll, promotions, transfers and leave history will also be cleared.</div>
+          <button class="btn btn-danger btn-sm" onclick="clearAllEmployees()">Clear All Employees &amp; Payroll Data</button>
+        </div>
+        <div style="flex:1;min-width:260px;background:rgba(181,72,58,0.06);border:1px solid rgba(181,72,58,0.2);border-radius:8px;padding:14px;">
+          <div style="font-size:13px;font-weight:600;color:#e8a89c;margin-bottom:4px;">Full System Reset</div>
+          <div style="font-size:12px;color:var(--ink-dim);margin-bottom:10px;">Resets ALL system data including employees, payroll, reports, users (except sys_admin). Use only when starting completely fresh.</div>
+          <button class="btn btn-danger btn-sm" onclick="fullSystemReset()">Full System Reset</button>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -1539,7 +1584,12 @@ function populateEmpDropdowns() {
 function openNewEmployee() {
   populateEmpDropdowns();
   document.getElementById('formEmp').reset();
-  document.getElementById('in-empId').value = '';
+  document.getElementById('in-empId').value          = '';
+  document.getElementById('in-status').value         = 'Active';
+  document.getElementById('in-baseSalary').value     = '';
+  document.getElementById('in-extraAllowance').value = '';
+  document.getElementById('in-deduction').value      = '';
+  document.getElementById('in-bankAccount').value    = '';
   document.getElementById('modalEmpTitle').textContent = 'Register New Personnel';
   openModal('modalEmp');
 }
@@ -1548,15 +1598,20 @@ window.editEmployee = function(id) {
   const emp = DB.employees.find(e=>e.id===id);
   if (!emp) return;
   populateEmpDropdowns();
-  document.getElementById('in-empId').value = id;
-  document.getElementById('in-fullName').value = emp.fullName;
-  document.getElementById('in-gender').value = emp.gender;
-  document.getElementById('in-rank').value = emp.rank;
-  document.getElementById('in-unit').value = emp.unitId;
-  document.getElementById('in-department').value = emp.department;
-  document.getElementById('in-hireDate').value = emp.hireDate;
-  document.getElementById('in-dob').value = emp.dob;
-  document.getElementById('in-phone').value = emp.phone;
+  document.getElementById('in-empId').value           = id;
+  document.getElementById('in-fullName').value        = emp.fullName;
+  document.getElementById('in-gender').value          = emp.gender;
+  document.getElementById('in-rank').value            = emp.rank;
+  document.getElementById('in-unit').value            = emp.unitId;
+  document.getElementById('in-department').value      = emp.department;
+  document.getElementById('in-hireDate').value        = emp.hireDate;
+  document.getElementById('in-dob').value             = emp.dob;
+  document.getElementById('in-phone').value           = emp.phone;
+  document.getElementById('in-status').value          = emp.status || 'Active';
+  document.getElementById('in-baseSalary').value      = emp.baseSalary != null ? emp.baseSalary : '';
+  document.getElementById('in-extraAllowance').value  = emp.extraAllowance || '';
+  document.getElementById('in-deduction').value       = emp.deduction || '';
+  document.getElementById('in-bankAccount').value     = emp.bankAccount || '';
   document.getElementById('modalEmpTitle').textContent = `Edit Record — ${emp.id}`;
   openModal('modalEmp');
 };
@@ -1575,26 +1630,49 @@ window.viewEmployee = function(id) {
   const pay  = calcPayroll(emp);
   const unit = UNITS.find(u=>u.id===emp.unitId)||{name:'—'};
   const age  = new Date().getFullYear() - new Date(emp.dob).getFullYear();
+  const hasOverride = emp.baseSalary != null && emp.baseSalary > 0;
+  const svc  = ((new Date() - new Date(emp.hireDate)) / (1000*60*60*24*365.25)).toFixed(1);
+  const statusBadge = emp.status==='Active'?'active':emp.status==='Retired'?'retired':emp.status==='Suspended'?'pending':'leave';
   document.getElementById('detailViewContent').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line);">
+      <div>
+        <div style="font-family:'Bitter',serif;font-size:20px;font-weight:800;color:var(--parchment);">${emp.fullName}</div>
+        <div style="font-family:'JetBrains Mono',monospace;color:var(--gold-bright);font-size:12px;margin-top:3px;">${emp.id} &nbsp;·&nbsp; ${emp.rank}</div>
+      </div>
+      <span class="badge ${statusBadge}" style="font-size:12px;padding:5px 12px;">${emp.status}</span>
+    </div>
     <div class="detail-grid">
-      <div><div class="detail-label">Full Name</div><div class="detail-val">${emp.fullName}</div></div>
-      <div><div class="detail-label">Badge ID</div><div class="detail-val mono" style="color:var(--gold-bright)">${emp.id}</div></div>
-      <div><div class="detail-label">Rank</div><div class="detail-val">${emp.rank}</div></div>
-      <div><div class="detail-label">Unit</div><div class="detail-val">${unit.name}</div></div>
+      <div><div class="detail-label">Administrative Unit</div><div class="detail-val">${unit.name}</div></div>
       <div><div class="detail-label">Department</div><div class="detail-val">${emp.department}</div></div>
-      <div><div class="detail-label">Hire Date</div><div class="detail-val">${emp.hireDate}</div></div>
-      <div><div class="detail-label">Date of Birth</div><div class="detail-val">${emp.dob} (Age ${age})</div></div>
-      <div><div class="detail-label">Phone</div><div class="detail-val">${emp.phone}</div></div>
       <div><div class="detail-label">Gender</div><div class="detail-val">${emp.gender}</div></div>
-      <div><div class="detail-label">Status</div><div class="detail-val"><span class="badge ${emp.status==='Active'?'active':'leave'}">${emp.status}</span></div></div>
+      <div><div class="detail-label">Date of Birth</div><div class="detail-val">${emp.dob} &nbsp;(Age ${age})</div></div>
+      <div><div class="detail-label">Enlistment Date</div><div class="detail-val">${emp.hireDate}</div></div>
+      <div><div class="detail-label">Years of Service</div><div class="detail-val">${svc} years</div></div>
+      <div><div class="detail-label">Mobile Contact</div><div class="detail-val">${emp.phone}</div></div>
+      <div><div class="detail-label">Bank Account</div><div class="detail-val mono">${emp.bankAccount || '— not set —'}</div></div>
     </div>
     <div class="financial-breakdown">
-      <h4>Monthly Compensation</h4>
-      <div class="fin-row"><span>Base Salary:</span><span>${pay.base.toLocaleString()} ETB</span></div>
-      <div class="fin-row"><span>Hazard Allowance (25%):</span><span>+${pay.hazard.toLocaleString()} ETB</span></div>
-      <div class="fin-row"><span>Regional Allowance:</span><span>+${pay.regional.toLocaleString()} ETB</span></div>
-      <div class="fin-row total"><span>Gross Monthly Total:</span><span>${pay.gross.toLocaleString()} ETB</span></div>
+      <h4>Monthly Payroll Breakdown</h4>
+      <div class="fin-row">
+        <span>Base Salary ${hasOverride ? '<span style="color:var(--gold-bright);font-size:10px;">[CUSTOM OVERRIDE]</span>' : '('+emp.rank+' rank rate)'}:</span>
+        <span>${pay.base.toLocaleString()} ETB</span>
+      </div>
+      <div class="fin-row" style="color:var(--green-bright)">
+        <span>Hazard Allow. (25%${emp.status!=='Active'?' — waived: not Active':''}):</span>
+        <span>+${pay.hazard.toLocaleString()} ETB</span>
+      </div>
+      <div class="fin-row"><span>Regional Allow. (${unit.name}):</span><span>+${pay.regional.toLocaleString()} ETB</span></div>
+      ${pay.extra ? `<div class="fin-row" style="color:var(--gold-bright)"><span>Extra Allowance:</span><span>+${pay.extra.toLocaleString()} ETB</span></div>` : ''}
+      ${pay.deduct ? `<div class="fin-row" style="color:#e8a89c"><span>Deduction:</span><span>−${pay.deduct.toLocaleString()} ETB</span></div>` : ''}
+      <div class="fin-row total"><span>GROSS MONTHLY TOTAL:</span><span>${pay.gross.toLocaleString()} ETB</span></div>
+      <div class="fin-row" style="margin-top:8px;font-size:11.5px;color:var(--ink-dim);">
+        <span>Annual projection (×12):</span><span>${(pay.gross*12).toLocaleString()} ETB</span>
+      </div>
     </div>
+  `;
+  document.querySelector('#modalDetail .modal-foot').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeModal('modalDetail')">Close</button>
+    <button class="btn btn-gold" onclick="closeModal('modalDetail');editEmployee('${emp.id}')">Edit Record</button>
   `;
   openModal('modalDetail');
 };
@@ -1602,25 +1680,38 @@ window.viewEmployee = function(id) {
 document.getElementById('formEmp').addEventListener('submit', e => {
   e.preventDefault();
   const id = document.getElementById('in-empId').value;
+  const baseSalaryRaw = document.getElementById('in-baseSalary').value;
+  const extraRaw      = document.getElementById('in-extraAllowance').value;
+  const deductRaw     = document.getElementById('in-deduction').value;
   const data = {
-    fullName:   document.getElementById('in-fullName').value.trim(),
-    gender:     document.getElementById('in-gender').value,
-    rank:       document.getElementById('in-rank').value,
-    unitId:     document.getElementById('in-unit').value,
-    department: document.getElementById('in-department').value,
-    hireDate:   document.getElementById('in-hireDate').value,
-    dob:        document.getElementById('in-dob').value,
-    phone:      document.getElementById('in-phone').value.trim(),
+    fullName:        document.getElementById('in-fullName').value.trim(),
+    gender:          document.getElementById('in-gender').value,
+    rank:            document.getElementById('in-rank').value,
+    unitId:          document.getElementById('in-unit').value,
+    department:      document.getElementById('in-department').value,
+    hireDate:        document.getElementById('in-hireDate').value,
+    dob:             document.getElementById('in-dob').value,
+    phone:           document.getElementById('in-phone').value.trim(),
+    status:          document.getElementById('in-status').value,
+    baseSalary:      baseSalaryRaw !== '' ? Number(baseSalaryRaw) : null,
+    extraAllowance:  extraRaw !== '' ? Number(extraRaw) : 0,
+    deduction:       deductRaw !== '' ? Number(deductRaw) : 0,
+    bankAccount:     document.getElementById('in-bankAccount').value.trim(),
   };
   if (id) {
     const idx = DB.employees.findIndex(e=>e.id===id);
     if (idx > -1) DB.employees[idx] = Object.assign({}, DB.employees[idx], data);
-    showToast('Personnel record updated.');
+    showToast('Personnel record updated successfully.');
   } else {
-    data.id     = 'SPB-' + (1000 + DB.employees.length + 1);
-    data.status = 'Active';
+    // Generate next Badge ID — find highest existing numeric suffix
+    let maxNum = 1000;
+    DB.employees.forEach(emp => {
+      const m = emp.id && emp.id.match(/SPB-(\d+)/);
+      if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
+    });
+    data.id = 'SPB-' + (maxNum + 1);
     DB.employees.push(data);
-    showToast('New personnel record created.');
+    showToast('New personnel record created: ' + data.id);
   }
   saveState(DB); closeModal('modalEmp');
   buildUnitRoster();
@@ -1856,6 +1947,39 @@ window.resolveReport = function(id) {
   showToast('Report marked as resolved.');
   closeModal('modalReportDetail');
   switchNav('reports');
+};
+
+/* ====================================================================
+   DATA MANAGEMENT — Admin-only reset functions
+==================================================================== */
+
+window.clearAllEmployees = function() {
+  if (!confirm('WARNING: This will permanently delete ALL employee records, payroll data, promotions, transfers and leave history.\n\nThis cannot be undone. Are you absolutely sure?')) return;
+  if (!confirm('Second confirmation: Type YES to confirm deletion of all employee data.\n\n(Click OK to proceed, Cancel to abort)')) return;
+  DB.employees   = [];
+  DB.promoLog    = [];
+  DB.transferLog = [];
+  DB.leaveLog    = [];
+  saveState(DB);
+  showToast('All employee & payroll records cleared. System ready for real data entry.');
+  buildUnitRoster();
+  switchNav('admin');
+};
+
+window.fullSystemReset = function() {
+  if (!confirm('CRITICAL WARNING: This will delete ALL data in the system including employees, reports, and all user accounts except the System Administrator.\n\nThis CANNOT be undone. Proceed?')) return;
+  if (!confirm('Final confirmation: This will wipe the entire database. Click OK only if you are certain.')) return;
+  // Keep only sys_admin
+  DB.users       = DB.users.filter(u => u.role === 'sys_admin');
+  DB.employees   = [];
+  DB.promoLog    = [];
+  DB.transferLog = [];
+  DB.leaveLog    = [];
+  DB.reports     = [];
+  saveState(DB);
+  showToast('Full system reset complete. All data cleared.');
+  buildUnitRoster();
+  switchNav('admin');
 };
 
 /* ====================================================================
